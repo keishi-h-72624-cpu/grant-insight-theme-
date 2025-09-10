@@ -236,16 +236,49 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
             -webkit-tap-highlight-color: rgba(0,0,0,0.1);
         }
         
-        /* オーバーレイ要素がクリックを遮断しないように */
+        /* 緊急修正: 薄い灰色オーバーレイを完全除去 */
         .overlay,
         .loading-overlay,
-        .modal-backdrop {
+        .modal-backdrop,
+        .menu-overlay,
+        .disabled-overlay,
+        .loading,
+        .loader-overlay,
+        *[class*="overlay"]:not(#mobile-menu-overlay) {
+            display: none !important;
             pointer-events: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            z-index: -1 !important;
+        }
+        
+        /* メニューとナビゲーションを強制的に有効化 */
+        #mobile-menu,
+        .site-navigation,
+        .menu,
+        .sidebar,
+        nav,
+        .menu-content,
+        .menu-item,
+        .nav-item,
+        #mobile-menu * {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            background: transparent !important;
+            filter: none !important;
+            user-select: auto !important;
+        }
+        
+        /* モバイルメニュー自体の背景は白に */
+        #mobile-menu {
+            background-color: white !important;
         }
         
         /* モバイルメニューが表示されている時だけオーバーレイを有効化 */
         #mobile-menu-overlay.overlay-visible {
+            display: block !important;
             pointer-events: auto !important;
+            opacity: 1 !important;
         }
         
         /* モバイルメニューの基本スタイル */
@@ -862,12 +895,41 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
     <!-- メインコンテンツ開始 -->
     <main id="content" class="site-main" role="main">
     
-    <!-- 緊急修正: pointer-events問題の即座の解決 -->
+    <!-- 緊急修正: 薄い灰色オーバーレイとpointer-events問題の即座の解決 -->
     <script>
     (function() {
+        // 薄い灰色オーバーレイを強制除去
+        function removeAllOverlays() {
+            console.log('[Emergency Fix] Removing gray overlays...');
+            
+            // オーバーレイ系の要素を完全除去
+            var overlays = document.querySelectorAll('.overlay, .loading-overlay, .modal-backdrop, .menu-overlay, .loading, [class*="overlay"]');
+            overlays.forEach(function(el) {
+                if (el.id !== 'mobile-menu-overlay') {
+                    el.style.display = 'none';
+                    el.style.opacity = '0';
+                    el.style.pointerEvents = 'none';
+                    el.style.visibility = 'hidden';
+                    el.remove(); // 完全に削除
+                }
+            });
+            
+            // メニューの opacity を復活
+            var menus = document.querySelectorAll('#mobile-menu, .menu, .sidebar, nav');
+            menus.forEach(function(menu) {
+                menu.style.opacity = '1';
+                menu.style.pointerEvents = 'auto';
+                menu.style.filter = 'none';
+                menu.style.background = menu.id === 'mobile-menu' ? 'white' : 'transparent';
+            });
+        }
+        
         // ページ読み込み完了後に全リンクを強制的にクリック可能にする
         function emergencyFix() {
-            console.log('[Emergency Fix] Enabling all navigation links...');
+            console.log('[Emergency Fix] Starting emergency fixes...');
+            
+            // まずオーバーレイを除去
+            removeAllOverlays();
             
             // すべてのリンクを取得
             var allLinks = document.querySelectorAll('a, button, .nav-item, .menu-item');
@@ -876,6 +938,7 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
                 // pointer-eventsを強制的に有効化
                 element.style.pointerEvents = 'auto';
                 element.style.cursor = 'pointer';
+                element.style.opacity = '1';
                 
                 // z-indexを最前面に
                 if (element.closest('#mobile-menu')) {

@@ -37,6 +37,9 @@
     function initMobileMenu() {
         log('Initializing mobile menu...');
         
+        // 初期化時に灰色オーバーレイを除去
+        removeGrayOverlay();
+        
         // 必要な要素を取得
         const menuButton = safeGetElement('mobile-menu-button');
         const closeButton = safeGetElement('mobile-menu-close-button');
@@ -60,6 +63,10 @@
         function openMenu() {
             try {
                 log('Opening menu...');
+                
+                // まず灰色オーバーレイを除去
+                removeGrayOverlay();
+                
                 isMenuOpen = true;
                 
                 // メニューを表示
@@ -256,9 +263,65 @@
         initMobileMenu();
     }
     
+    // 薄い灰色オーバーレイを強制除去
+    function removeGrayOverlay() {
+        log('Removing gray overlay...');
+        
+        // オーバーレイ系の要素を全て取得
+        const overlaySelectors = [
+            '.overlay',
+            '.loading-overlay',
+            '.modal-backdrop',
+            '.menu-overlay',
+            '.disabled-overlay',
+            '.loading',
+            '.loader-overlay',
+            '[class*="overlay"]'
+        ];
+        
+        overlaySelectors.forEach(function(selector) {
+            try {
+                document.querySelectorAll(selector).forEach(function(element) {
+                    // mobile-menu-overlayは除外
+                    if (element.id !== 'mobile-menu-overlay') {
+                        // 完全に除去
+                        element.style.display = 'none';
+                        element.style.opacity = '0';
+                        element.style.pointerEvents = 'none';
+                        element.style.visibility = 'hidden';
+                        element.style.zIndex = '-1';
+                        
+                        // クラスも削除
+                        element.classList.remove('active', 'show', 'visible', 'open');
+                        
+                        log('Removed overlay:', selector);
+                    }
+                });
+            } catch (e) {
+                log('Error removing overlay:', e);
+            }
+        });
+        
+        // opacity が設定されている要素を復活
+        document.querySelectorAll('[style*="opacity"]').forEach(function(element) {
+            if (element.id === 'mobile-menu' || 
+                element.closest('#mobile-menu') || 
+                element.classList.contains('menu-item') ||
+                element.classList.contains('nav-item')) {
+                element.style.opacity = '1';
+                element.style.filter = 'none';
+            }
+        });
+        
+        log('Gray overlay removal completed');
+    }
+    
     // グローバルな修正関数
     function fixAllPointerEvents() {
         log('Fixing all pointer-events...');
+        
+        // まず灰色オーバーレイを除去
+        removeGrayOverlay();
         
         // すべてのナビゲーションリンクを強制的にクリック可能に
         const selectors = [
@@ -309,7 +372,15 @@
     window.MobileMenu = {
         init: initMobileMenu,
         fixPointerEvents: fixAllPointerEvents,
-        version: '1.1.0'
+        removeGrayOverlay: removeGrayOverlay,
+        version: '1.2.0'
+    };
+    
+    // コンソールから手動実行可能
+    window.fixMenu = function() {
+        removeGrayOverlay();
+        fixAllPointerEvents();
+        console.log('Menu fixed! Gray overlay removed.');
     };
     
 })();
