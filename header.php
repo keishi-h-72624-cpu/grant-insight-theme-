@@ -213,6 +213,41 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
     
     <!-- モバイルメニュー用のインラインCSS（CDN依存なし） -->
     <style>
+        /* 重要: pointer-eventsとz-indexの修正 */
+        * {
+            /* pointer-eventsのリセット（none設定を防ぐ） */
+        }
+        
+        /* すべてのナビゲーションリンクを強制的にクリック可能に */
+        nav a,
+        .nav-link,
+        .nav-item,
+        .menu-item,
+        .navigation-link,
+        #mobile-menu a,
+        #mobile-menu button,
+        .mobile-grant-link,
+        .mobile-search-link {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            position: relative !important;
+            z-index: 10000 !important;
+            user-select: auto !important;
+            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+        }
+        
+        /* オーバーレイ要素がクリックを遮断しないように */
+        .overlay,
+        .loading-overlay,
+        .modal-backdrop {
+            pointer-events: none !important;
+        }
+        
+        /* モバイルメニューが表示されている時だけオーバーレイを有効化 */
+        #mobile-menu-overlay.overlay-visible {
+            pointer-events: auto !important;
+        }
+        
         /* モバイルメニューの基本スタイル */
         #mobile-menu {
             position: fixed;
@@ -223,11 +258,12 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
             height: 100%;
             background-color: white;
             box-shadow: -2px 0 10px rgba(0,0,0,0.1);
-            z-index: 9999;
+            z-index: 99999; /* 最前面に */
             transform: translateX(100%);
             transition: transform 0.3s ease-in-out;
             overflow-y: auto;
             display: none;
+            pointer-events: auto !important; /* メニュー全体をクリック可能に */
         }
         
         #mobile-menu.menu-open {
@@ -307,7 +343,7 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
                 <a href="<?php echo esc_url(home_url('/')); ?>" rel="home" class="logo-link flex items-center gap-3 text-decoration-none">
                     <!-- ロゴ画像（サイズ固定） -->
                     <div class="logo-main">
-                        <img src="http://joseikin-insight.com/wp-content/uploads/2025/09/1757335941511.png" 
+                        <img src="https://joseikin-insight.com/wp-content/uploads/2025/09/1757335941511.png" 
                              alt="助成金・補助金情報サイト" 
                              loading="eager"
                              decoding="async"
@@ -687,7 +723,7 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
         <!-- メニューヘッダー -->
         <div class="menu-header flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
             <div class="menu-title flex items-center space-x-3">
-                <img src="http://joseikin-insight.com/wp-content/uploads/2025/09/1757335941511.png" 
+                <img src="https://joseikin-insight.com/wp-content/uploads/2025/09/1757335941511.png" 
                      alt="助成金・補助金情報サイト" 
                      class="h-10 w-auto">
                 <div>
@@ -825,6 +861,43 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
 
     <!-- メインコンテンツ開始 -->
     <main id="content" class="site-main" role="main">
+    
+    <!-- 緊急修正: pointer-events問題の即座の解決 -->
+    <script>
+    (function() {
+        // ページ読み込み完了後に全リンクを強制的にクリック可能にする
+        function emergencyFix() {
+            console.log('[Emergency Fix] Enabling all navigation links...');
+            
+            // すべてのリンクを取得
+            var allLinks = document.querySelectorAll('a, button, .nav-item, .menu-item');
+            
+            allLinks.forEach(function(element) {
+                // pointer-eventsを強制的に有効化
+                element.style.pointerEvents = 'auto';
+                element.style.cursor = 'pointer';
+                
+                // z-indexを最前面に
+                if (element.closest('#mobile-menu')) {
+                    element.style.position = 'relative';
+                    element.style.zIndex = '100000';
+                }
+            });
+            
+            console.log('[Emergency Fix] Fixed ' + allLinks.length + ' elements');
+        }
+        
+        // 即座に実行
+        if (document.readyState === 'complete') {
+            emergencyFix();
+        } else {
+            window.addEventListener('load', emergencyFix);
+        }
+        
+        // 念のため遅延実行も
+        setTimeout(emergencyFix, 1000);
+    })();
+    </script>
 
 <!-- 🚀 検索モーダル専用JavaScript（モバイルメニューは別ファイル） -->
 <script>

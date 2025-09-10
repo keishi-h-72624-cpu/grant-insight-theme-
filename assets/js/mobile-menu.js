@@ -189,6 +189,42 @@
         } catch (e) {
             log('Error setting initial state:', e);
         }
+        
+        // メニュー内のリンクを強制的にクリック可能にする
+        try {
+            // すべてのリンクとボタンのpointer-eventsを有効化
+            const menuItems = mobileMenu.querySelectorAll('a, button, .nav-item, .menu-item');
+            menuItems.forEach(function(item) {
+                item.style.pointerEvents = 'auto';
+                item.style.cursor = 'pointer';
+                item.style.position = 'relative';
+                item.style.zIndex = '10001';
+                
+                // タッチイベントも追加（モバイル対応）
+                item.addEventListener('touchstart', function(e) {
+                    // タッチイベントが正常に動作することを確認
+                    log('Touch event on menu item:', this.textContent);
+                }, { passive: true });
+                
+                // クリックイベントの強制追加
+                if (item.tagName === 'A' && item.href) {
+                    item.addEventListener('click', function(e) {
+                        log('Menu link clicked:', this.href);
+                        // デフォルトの動作を一旦停止して、確実にページ遷移
+                        if (this.href && !this.href.includes('#')) {
+                            e.preventDefault();
+                            setTimeout(function() {
+                                window.location.href = item.href;
+                            }, 100);
+                        }
+                    });
+                }
+            });
+            
+            log('Menu items pointer-events enabled:', menuItems.length);
+        } catch (e) {
+            log('Error enabling menu items:', e);
+        }
     }
     
     // CSSのみのフォールバック
@@ -220,10 +256,60 @@
         initMobileMenu();
     }
     
+    // グローバルな修正関数
+    function fixAllPointerEvents() {
+        log('Fixing all pointer-events...');
+        
+        // すべてのナビゲーションリンクを強制的にクリック可能に
+        const selectors = [
+            'nav a',
+            '.nav-link',
+            '.nav-item',
+            '#mobile-menu a',
+            '#mobile-menu button',
+            '.mobile-grant-link',
+            '.mobile-search-link',
+            'a[href]',
+            'button'
+        ];
+        
+        selectors.forEach(function(selector) {
+            try {
+                document.querySelectorAll(selector).forEach(function(element) {
+                    element.style.pointerEvents = 'auto';
+                    element.style.cursor = 'pointer';
+                    element.style.userSelect = 'auto';
+                });
+            } catch (e) {
+                log('Error fixing pointer-events for:', selector);
+            }
+        });
+        
+        // 邪魔になる可能性のあるオーバーレイを無効化
+        const overlaySelectors = ['.overlay', '.loading-overlay', '.modal-backdrop'];
+        overlaySelectors.forEach(function(selector) {
+            try {
+                document.querySelectorAll(selector).forEach(function(element) {
+                    if (!element.id || element.id !== 'mobile-menu-overlay') {
+                        element.style.pointerEvents = 'none';
+                    }
+                });
+            } catch (e) {
+                log('Error disabling overlay:', selector);
+            }
+        });
+        
+        log('Pointer-events fix completed');
+    }
+    
+    // ページ読み込み後に自動実行
+    setTimeout(fixAllPointerEvents, 500);
+    
     // グローバルに公開（デバッグ用）
     window.MobileMenu = {
         init: initMobileMenu,
-        version: '1.0.0'
+        fixPointerEvents: fixAllPointerEvents,
+        version: '1.1.0'
     };
     
 })();
