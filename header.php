@@ -211,6 +211,9 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
         <meta property="og:url" content="<?php echo esc_url(home_url()); ?>">
     <?php endif; ?>
     
+    <!-- Tailwind CSS (モバイルメニュー用) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- リソース最適化 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -613,8 +616,8 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
          aria-hidden="true"></div>
 
     <aside id="mobile-menu" 
-           class="mobile-menu fixed top-0 right-0 w-80 max-w-full h-full bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto"
-           style="z-index: 9999;"
+           class="mobile-menu fixed top-0 right-0 h-full bg-white shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto"
+           style="z-index: 9999; width: 280px; max-width: 85vw; transform: translateX(100%);"
            aria-label="モバイルナビゲーション"
            aria-hidden="true"
         
@@ -790,6 +793,16 @@ document.addEventListener('DOMContentLoaded', function() {
         closeButton: !!mobileMenuClose
     });
     
+    // 初期状態を確実に設定
+    if (mobileMenu) {
+        mobileMenu.style.transform = 'translateX(100%)';
+        console.log('Mobile menu initial transform set');
+    }
+    if (mobileOverlay) {
+        mobileOverlay.style.display = 'none';
+        console.log('Mobile overlay initial display set');
+    }
+    
     // 🔧 設定
     const CONFIG = {
         searchUrl: '<?php echo esc_url(home_url("/grants/")); ?>',
@@ -883,23 +896,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         isMenuOpen = true;
-        mobileMenu.classList.remove('translate-x-full');
-        mobileMenu.style.transform = 'translateX(0)'; // 強制的に表示
+        // Tailwindクラスではなく、直接スタイルを操作
+        mobileMenu.style.transform = 'translateX(0)';
+        mobileMenu.setAttribute('aria-hidden', 'false');
         
         if (mobileOverlay) {
+            mobileOverlay.style.display = 'block';
             mobileOverlay.classList.remove('hidden');
-            mobileOverlay.style.display = 'block'; // 強制的に表示
+            // アニメーションのため少し遅延
             setTimeout(() => {
-                mobileOverlay.classList.remove('opacity-0');
                 mobileOverlay.style.opacity = '1';
+                mobileOverlay.classList.remove('opacity-0');
             }, 10);
         }
+        
         document.body.style.overflow = 'hidden';
         
         if (mobileMenuButton) {
             mobileMenuButton.setAttribute('aria-expanded', 'true');
             mobileMenuButton.setAttribute('aria-label', 'メニューを閉じる');
         }
+        
+        console.log('Mobile menu opened successfully');
     }
     
     function closeMobileMenu() {
@@ -907,23 +925,27 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!mobileMenu || !isMenuOpen) return;
         
         isMenuOpen = false;
-        mobileMenu.classList.add('translate-x-full');
-        mobileMenu.style.transform = ''; // スタイルをリセット
+        // Tailwindクラスではなく、直接スタイルを操作
+        mobileMenu.style.transform = 'translateX(100%)';
+        mobileMenu.setAttribute('aria-hidden', 'true');
         
         if (mobileOverlay) {
+            mobileOverlay.style.opacity = '0';
             mobileOverlay.classList.add('opacity-0');
-            mobileOverlay.style.opacity = '';
             setTimeout(() => {
+                mobileOverlay.style.display = 'none';
                 mobileOverlay.classList.add('hidden');
-                mobileOverlay.style.display = '';
             }, 300);
         }
+        
         document.body.style.overflow = '';
         
         if (mobileMenuButton) {
             mobileMenuButton.setAttribute('aria-expanded', 'false');
             mobileMenuButton.setAttribute('aria-label', 'メニューを開く');
         }
+        
+        console.log('Mobile menu closed successfully');
     }
     
     // 🎯 イベントリスナー設定
