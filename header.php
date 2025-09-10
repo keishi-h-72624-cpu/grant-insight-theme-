@@ -211,19 +211,82 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
         <meta property="og:url" content="<?php echo esc_url(home_url()); ?>">
     <?php endif; ?>
     
-    <!-- Tailwind CSS (モバイルメニュー用) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- モバイルメニュー用のインラインCSS（CDN依存なし） -->
+    <style>
+        /* モバイルメニューの基本スタイル */
+        #mobile-menu {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 280px;
+            max-width: 85vw;
+            height: 100%;
+            background-color: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            z-index: 9999;
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        #mobile-menu.menu-open {
+            transform: translateX(0) !important;
+            display: block !important;
+        }
+        
+        #mobile-menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 9998;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        #mobile-menu-overlay.overlay-visible {
+            display: block !important;
+            opacity: 1 !important;
+        }
+        
+        /* モバイルメニューボタン */
+        #mobile-menu-button {
+            padding: 10px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            z-index: 50;
+        }
+        
+        @media (min-width: 1024px) {
+            #mobile-menu,
+            #mobile-menu-overlay,
+            #mobile-menu-button {
+                display: none !important;
+            }
+        }
+    </style>
     
     <!-- リソース最適化 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     
-    <!-- 重要リソースのプリロード -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <!-- Font Awesome ローカルフォールバック付き -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+          onerror="this.onerror=null;this.href='<?php echo get_template_directory_uri(); ?>/assets/css/fontawesome-fallback.css';">
+    
+    <!-- Google Fonts ローカルフォールバック付き -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;900&display=swap"
+          onerror="this.onerror=null;this.remove();"">
     
     <?php wp_head(); ?>
+    
+    <!-- モバイルメニュー専用JavaScript（エラーセーフ版） -->
+    <script src="<?php echo get_template_directory_uri(); ?>/assets/js/mobile-menu.js?v=<?php echo time(); ?>"></script>
 </head>
 
 <body <?php body_class('bg-white text-gray-900 antialiased font-japanese'); ?>>
@@ -763,10 +826,22 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
     <!-- メインコンテンツ開始 -->
     <main id="content" class="site-main" role="main">
 
-<!-- 🚀 ヘッダー完全制御JavaScript -->
+<!-- 🚀 検索モーダル専用JavaScript（モバイルメニューは別ファイル） -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
     'use strict';
+    
+    // エラーハンドリング用のラッパー
+    function safeExecute(fn) {
+        try {
+            fn();
+        } catch (e) {
+            console.error('[Header Script Error]:', e);
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        safeExecute(function() {
     
     // ✅ ヘッダー読み込み完了マーク
     document.body.classList.add('header-loaded');
@@ -780,28 +855,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchClear = document.querySelector('.search-clear-btn');
     const keywordBtns = document.querySelectorAll('.keyword-btn');
     const resetBtn = document.getElementById('modal-reset-btn');
-    const mobileMenuButton = document.getElementById('mobile-menu-button');
-    const mobileMenuClose = document.getElementById('mobile-menu-close-button');
-    const mobileMenu = document.getElementById('mobile-menu');
-    const mobileOverlay = document.getElementById('mobile-menu-overlay');
-    
-    // デバッグ用：要素の存在確認
-    console.log('Mobile menu elements:', {
-        button: !!mobileMenuButton,
-        menu: !!mobileMenu,
-        overlay: !!mobileOverlay,
-        closeButton: !!mobileMenuClose
-    });
-    
-    // 初期状態を確実に設定
-    if (mobileMenu) {
-        mobileMenu.style.transform = 'translateX(100%)';
-        console.log('Mobile menu initial transform set');
-    }
-    if (mobileOverlay) {
-        mobileOverlay.style.display = 'none';
-        console.log('Mobile overlay initial display set');
-    }
+    // モバイルメニューは mobile-menu.js で処理
     
     // 🔧 設定
     const CONFIG = {
@@ -885,68 +939,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
     
-    // 🎯 モバイルメニュー制御
-    let isMenuOpen = false;
-    
-    function openMobileMenu() {
-        console.log('openMobileMenu called', { mobileMenu, mobileOverlay });
-        if (!mobileMenu) {
-            console.error('Mobile menu element not found!');
-            return;
-        }
-        
-        isMenuOpen = true;
-        // Tailwindクラスではなく、直接スタイルを操作
-        mobileMenu.style.transform = 'translateX(0)';
-        mobileMenu.setAttribute('aria-hidden', 'false');
-        
-        if (mobileOverlay) {
-            mobileOverlay.style.display = 'block';
-            mobileOverlay.classList.remove('hidden');
-            // アニメーションのため少し遅延
-            setTimeout(() => {
-                mobileOverlay.style.opacity = '1';
-                mobileOverlay.classList.remove('opacity-0');
-            }, 10);
-        }
-        
-        document.body.style.overflow = 'hidden';
-        
-        if (mobileMenuButton) {
-            mobileMenuButton.setAttribute('aria-expanded', 'true');
-            mobileMenuButton.setAttribute('aria-label', 'メニューを閉じる');
-        }
-        
-        console.log('Mobile menu opened successfully');
-    }
-    
-    function closeMobileMenu() {
-        console.log('closeMobileMenu called', { isMenuOpen });
-        if (!mobileMenu || !isMenuOpen) return;
-        
-        isMenuOpen = false;
-        // Tailwindクラスではなく、直接スタイルを操作
-        mobileMenu.style.transform = 'translateX(100%)';
-        mobileMenu.setAttribute('aria-hidden', 'true');
-        
-        if (mobileOverlay) {
-            mobileOverlay.style.opacity = '0';
-            mobileOverlay.classList.add('opacity-0');
-            setTimeout(() => {
-                mobileOverlay.style.display = 'none';
-                mobileOverlay.classList.add('hidden');
-            }, 300);
-        }
-        
-        document.body.style.overflow = '';
-        
-        if (mobileMenuButton) {
-            mobileMenuButton.setAttribute('aria-expanded', 'false');
-            mobileMenuButton.setAttribute('aria-label', 'メニューを開く');
-        }
-        
-        console.log('Mobile menu closed successfully');
-    }
+    // モバイルメニュー機能は mobile-menu.js に移動
     
     // 🎯 イベントリスナー設定
     
@@ -1054,47 +1047,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // モバイルメニュー
-    if (mobileMenuButton) {
-        console.log('Mobile menu button found:', mobileMenuButton);
-        mobileMenuButton.addEventListener('click', function(e) {
-            console.log('Mobile menu button clicked');
-            e.preventDefault();
-            e.stopPropagation();
-            openMobileMenu();
-        });
-    } else {
-        console.error('Mobile menu button not found! Looking for #mobile-menu-button');
-    }
+    // モバイルメニューのイベントは mobile-menu.js で処理
     
-    if (mobileMenuClose) {
-        mobileMenuClose.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            closeMobileMenu();
-        });
-    }
-    
-    if (mobileOverlay) {
-        mobileOverlay.addEventListener('click', closeMobileMenu);
-    }
-    
-    // ESCキー
+    // ESCキー（検索モーダル用）
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            if (!searchModal.classList.contains('active')) {
+            if (searchModal && searchModal.classList.contains('active')) {
                 closeSearchModal();
-            } else if (isMenuOpen) {
-                closeMobileMenu();
             }
         }
     });
     
-    // ウィンドウサイズ変更
+    // ウィンドウサイズ変更（検索モーダル用）
     window.addEventListener('resize', debounce(function() {
-        if (window.innerWidth >= 1024 && isMenuOpen) {
-            closeMobileMenu();
-        }
+        // 必要に応じて検索モーダルの調整
     }, 250));
     
     // 🎯 ヘルパー関数
@@ -1199,5 +1165,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ 検索モーダル: 有効');
     console.log('✅ モバイルメニュー: 有効');
     console.log('✅ レスポンシブ対応: 有効');
-});
+        }); // safeExecute
+    }); // DOMContentLoaded
+})(); // IIFE
 </script>
