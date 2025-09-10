@@ -608,13 +608,15 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
 
     <!-- モバイルメニュー -->
     <div id="mobile-menu-overlay" 
-         class="mobile-overlay fixed inset-0 bg-black bg-opacity-50 z-40 hidden opacity-0 transition-all duration-300"
+         class="mobile-menu-overlay fixed inset-0 bg-black bg-opacity-50 hidden opacity-0 transition-all duration-300"
+         style="z-index: 9998;"
          aria-hidden="true"></div>
 
     <aside id="mobile-menu" 
-           class="mobile-menu fixed top-0 right-0 w-80 max-w-full h-full bg-white shadow-2xl z-45 transform translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto"
+           class="mobile-menu fixed top-0 right-0 w-80 max-w-full h-full bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto"
+           style="z-index: 9999;"
            aria-label="モバイルナビゲーション"
-           aria-hidden="true">
+           aria-hidden="true"
         
         <!-- メニューヘッダー -->
         <div class="menu-header flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
@@ -780,6 +782,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const mobileMenu = document.getElementById('mobile-menu');
     const mobileOverlay = document.getElementById('mobile-menu-overlay');
     
+    // デバッグ用：要素の存在確認
+    console.log('Mobile menu elements:', {
+        button: !!mobileMenuButton,
+        menu: !!mobileMenu,
+        overlay: !!mobileOverlay,
+        closeButton: !!mobileMenuClose
+    });
+    
     // 🔧 設定
     const CONFIG = {
         searchUrl: '<?php echo esc_url(home_url("/grants/")); ?>',
@@ -866,13 +876,23 @@ document.addEventListener('DOMContentLoaded', function() {
     let isMenuOpen = false;
     
     function openMobileMenu() {
-        if (!mobileMenu) return;
+        console.log('openMobileMenu called', { mobileMenu, mobileOverlay });
+        if (!mobileMenu) {
+            console.error('Mobile menu element not found!');
+            return;
+        }
         
         isMenuOpen = true;
         mobileMenu.classList.remove('translate-x-full');
+        mobileMenu.style.transform = 'translateX(0)'; // 強制的に表示
+        
         if (mobileOverlay) {
             mobileOverlay.classList.remove('hidden');
-            setTimeout(() => mobileOverlay.classList.remove('opacity-0'), 10);
+            mobileOverlay.style.display = 'block'; // 強制的に表示
+            setTimeout(() => {
+                mobileOverlay.classList.remove('opacity-0');
+                mobileOverlay.style.opacity = '1';
+            }, 10);
         }
         document.body.style.overflow = 'hidden';
         
@@ -883,13 +903,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function closeMobileMenu() {
+        console.log('closeMobileMenu called', { isMenuOpen });
         if (!mobileMenu || !isMenuOpen) return;
         
         isMenuOpen = false;
         mobileMenu.classList.add('translate-x-full');
+        mobileMenu.style.transform = ''; // スタイルをリセット
+        
         if (mobileOverlay) {
             mobileOverlay.classList.add('opacity-0');
-            setTimeout(() => mobileOverlay.classList.add('hidden'), 300);
+            mobileOverlay.style.opacity = '';
+            setTimeout(() => {
+                mobileOverlay.classList.add('hidden');
+                mobileOverlay.style.display = '';
+            }, 300);
         }
         document.body.style.overflow = '';
         
@@ -1007,11 +1034,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // モバイルメニュー
     if (mobileMenuButton) {
+        console.log('Mobile menu button found:', mobileMenuButton);
         mobileMenuButton.addEventListener('click', function(e) {
+            console.log('Mobile menu button clicked');
             e.preventDefault();
             e.stopPropagation();
             openMobileMenu();
         });
+    } else {
+        console.error('Mobile menu button not found! Looking for #mobile-menu-button');
     }
     
     if (mobileMenuClose) {
