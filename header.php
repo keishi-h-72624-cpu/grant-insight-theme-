@@ -89,16 +89,25 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
             gap: 1rem;
         }
         
-        /* ロゴ安定化 */
+        /* ロゴ安定化 - CLS防止のための固定サイズ */
         .site-logo { 
             flex-shrink: 0; 
             min-width: 0; 
             max-width: 50%;
         }
+        .logo-main {
+            width: 200px;
+            height: 50px;
+            position: relative;
+        }
         .logo-main img { 
-            height: 50px; 
-            width: auto; 
-            max-width: 200px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 50px !important; 
+            width: auto !important; 
+            max-width: 200px !important;
+            object-fit: contain;
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
         }
@@ -130,7 +139,14 @@ $search_nonce = wp_create_nonce('gi_ajax_nonce');
             .header-container { padding: 0.75rem 1rem; }
             .site-logo { max-width: 60%; }
             .site-title-simple { display: none; }
-            .logo-main img { height: 40px; }
+            .logo-main {
+                width: 160px;
+                height: 40px;
+            }
+            .logo-main img { 
+                height: 40px !important;
+                max-width: 160px !important;
+            }
         }
         
         /* ローディング状態 */

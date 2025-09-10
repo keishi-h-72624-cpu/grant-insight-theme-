@@ -23,7 +23,11 @@ if (!defined('ABSPATH')) {
 get_header(); ?>
 
 <!-- モバイル最適化カードデザイン用のスタイル読み込み -->
-<?php echo gi_generate_card_hover_styles(); ?>
+<?php 
+if (function_exists('gi_generate_card_hover_styles')) {
+    echo gi_generate_card_hover_styles();
+}
+?>
 
 <div class="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50">
     <!-- ヒーローセクション -->
@@ -543,7 +547,7 @@ get_header(); ?>
                                 
                                 // デバイス判定による条件分岐
                                 if (wp_is_mobile()) {
-                                    $card_template_path = get_template_directory() . '/template-parts/grant-card-mobile-compact.php';
+                                    $card_template_path = get_template_directory() . '/template-parts/front-page/grant-card-mobile-compact.php';
                                 } else {
                                     $card_template_path = get_template_directory() . '/template-parts/grant-card-v4-enhanced.php';
                                 }
@@ -990,31 +994,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 activeBtn.classList.remove('text-gray-600');
             }
 
-            // コンテナの完全排他的切り替え
+            // コンテナの完全排他的切り替え - 強制的に片方のみ表示
             const gridContainer = document.getElementById('grid-container');
             const listContainer = document.getElementById('list-container');
             
-            if (view === 'grid') {
-                // グリッド表示
-                if (gridContainer) {
+            // すべてのコンテナを一旦非表示
+            if (gridContainer) {
+                gridContainer.style.display = 'none';
+                gridContainer.classList.add('hidden');
+                gridContainer.classList.remove('grants-view-grid');
+            }
+            if (listContainer) {
+                listContainer.style.display = 'none';
+                listContainer.classList.add('hidden');
+                listContainer.classList.remove('grants-view-list');
+            }
+            
+            // 指定されたビューのみ表示
+            setTimeout(() => {
+                if (view === 'grid' && gridContainer) {
+                    gridContainer.style.display = '';
                     gridContainer.classList.remove('hidden');
-                    gridContainer.classList.add('grants-view-grid');
-                }
-                if (listContainer) {
-                    listContainer.classList.add('hidden');
-                    listContainer.classList.remove('grants-view-list');
-                }
-            } else {
-                // リスト表示
-                if (gridContainer) {
-                    gridContainer.classList.add('hidden');
-                    gridContainer.classList.remove('grants-view-grid');
-                }
-                if (listContainer) {
+                    gridContainer.classList.add('grants-view-grid', 'mobile-grant-grid');
+                } else if (view === 'list' && listContainer) {
+                    listContainer.style.display = '';
                     listContainer.classList.remove('hidden');
                     listContainer.classList.add('grants-view-list');
                 }
-            }
+            }, 10);
 
             this.loadGrants();
         },
@@ -1308,21 +1315,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
             this.showGrantsContainer();
 
-            // 【修正】表示の完全排他制御
+            // 【修正】表示の完全排他制御 - 強制的に片方のみレンダリング
+            const gridContainer = document.getElementById('grid-container');
+            const listContainer = document.getElementById('list-container');
+            
+            // すべてのコンテナを一旦クリア
+            if (gridContainer) {
+                gridContainer.style.display = 'none';
+                gridContainer.classList.add('hidden');
+            }
+            if (listContainer) {
+                listContainer.style.display = 'none';
+                listContainer.classList.add('hidden');
+                listContainer.innerHTML = '';
+            }
+            
+            // モバイルまたはグリッドビューの場合
             if (this.isMobile || this.currentView === 'grid') {
                 this.renderGridView(grants);
-                // リストコンテナを確実に非表示
-                const listContainer = document.getElementById('list-container');
-                if (listContainer) {
-                    listContainer.classList.add('hidden');
-                    listContainer.innerHTML = '';
+                if (gridContainer) {
+                    setTimeout(() => {
+                        gridContainer.style.display = '';
+                        gridContainer.classList.remove('hidden');
+                    }, 10);
                 }
             } else {
+                // リストビューの場合
                 this.renderListView(grants);
-                // グリッドコンテナを確実に非表示
-                const gridContainer = document.getElementById('grid-container');
-                if (gridContainer) {
-                    gridContainer.classList.add('hidden');
+                if (listContainer) {
+                    setTimeout(() => {
+                        listContainer.style.display = '';
+                        listContainer.classList.remove('hidden');
+                    }, 10);
                 }
             }
 
@@ -1349,7 +1373,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const container = document.getElementById('grid-container');
             if (!container) return;
             
+            // 強制的に表示状態を設定
+            container.style.display = '';
             container.classList.remove('hidden');
+            container.classList.add('grants-view-grid', 'mobile-grant-grid');
             container.innerHTML = grants.map(grant => grant.html).join('');
             this.animateCards();
         },
@@ -1360,7 +1387,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const container = document.getElementById('list-container');
             if (!container) return;
             
+            // 強制的に表示状態を設定
+            container.style.display = '';
             container.classList.remove('hidden');
+            container.classList.add('grants-view-list');
             container.innerHTML = grants.map(grant => grant.html).join('');
             this.animateCards();
         },
@@ -1627,50 +1657,63 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- 完全修正版CSS（ダークモード削除・フローティングボタン削除） -->
+<!-- 完全修正版CSS（ダークモード削除・フローティングボタン削除・排他制御強化） -->
 <style>
-/* Grant Archive Mobile Optimized Styles - Complete Fixed Version */
+/* Grant Archive Mobile Optimized Styles - Complete Fixed Version with Exclusive Control */
 
-/* 基本レスポンシブ設定 */
+/* 重要: Tailwind CDNとの競合を防ぐためのリセット */
+.grants-view-grid,
+.grants-view-list,
 .mobile-grant-grid {
-    display: grid;
+    all: revert;
+    box-sizing: border-box;
+}
+
+/* 基本レスポンシブ設定 - より具体的なセレクタで優先度を上げる */
+#grants-container .mobile-grant-grid {
+    display: grid !important;
     grid-template-columns: 1fr;
     gap: 0.75rem;
     padding: 0;
 }
 
 @media (min-width: 768px) {
-    .mobile-grant-grid {
-        grid-template-columns: repeat(2, 1fr);
+    #grants-container .mobile-grant-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
         gap: 1rem;
     }
 }
 
 @media (min-width: 1024px) {
-    .mobile-grant-grid {
-        grid-template-columns: repeat(3, 1fr);
+    #grants-container .mobile-grant-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
         gap: 1.5rem;
     }
 }
 
 @media (min-width: 1280px) {
-    .mobile-grant-grid {
-        grid-template-columns: repeat(4, 1fr);
+    #grants-container .mobile-grant-grid {
+        grid-template-columns: repeat(4, 1fr) !important;
     }
 }
 
-/* 表示切り替えの完全排他制御 */
-.grants-view-grid {
-    display: grid;
+/* 表示切り替えの完全排他制御 - 強制優先度設定 */
+#grants-container .grants-view-grid {
+    display: grid !important;
 }
 
-.grants-view-list {
-    display: block;
+#grants-container .grants-view-list {
+    display: block !important;
 }
 
-.grants-view-grid.hidden,
-.grants-view-list.hidden {
+#grants-container .grants-view-grid.hidden,
+#grants-container .grants-view-list.hidden,
+#grid-container.hidden,
+#list-container.hidden {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 /* スクロールバー非表示 */
